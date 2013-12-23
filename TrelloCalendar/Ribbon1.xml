@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<customUI onLoad="Ribbon_Load" xmlns="http://schemas.microsoft.com/office/2009/07/customui">
+  <ribbon>
+    <tabs>
+      <tab idMso="TabCalendar">
+        <group id="btngrp1" label="Trello Actions">
+          <button id="btnConfig" onAction="btnConfig_Click" label="Config" size="large" imageMso="ControlsGallery"/>
+          <button id="btnSync" onAction="btnSync_Click" label="Sync" size="large" imageMso="Refresh" />
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+  <backstage>
+    <tab id="MyBackstage" label="Trello" columnWidthPercent="30" insertAfterMso="TabInfo" visible="true">
+      <firstColumn>
+        <group id="grpTrello" label="Trello Outlook Addin Settings" >
+          <primaryItem>
+            <button id="btnTrello" label="Go To Trello" onAction="btnTrello_Click" getImage="GetImage" />
+          </primaryItem>
+          <topItems>
+            <button id="btnAuth" onAction="btnAuth_Click" label="Authorise" imageMso="DatabasePermissionsMenu" style="large" />
+            <button id="btnDeAuthorise" label="De-Authorise" onAction="btnDeauthorise_Click" imageMso="PrintPreviewClose" style="large"/>
+            <button id="btnHelp" label="Help" imageMso="Help" style="large"/>
+            <button id="btnFix" label="Fix Calendars" onAction="btnFix_Click" getImage="GetImage" style="large"/>
+          </topItems>
+        </group>
+      </firstColumn>
+
+    </tab>
+  </backstage>
+</customUI>

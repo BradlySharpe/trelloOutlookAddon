@@ -1,0 +1,57 @@
+﻿<?xml version="1.0"?>
+<doc>
+<assembly>
+<name>
+TrelloCalendar
+</name>
+</assembly>
+<members>
+<member name="P:TrelloCalendar.My.Resources.Resources.ResourceManager">
+	<summary>
+  Returns the cached ResourceManager instance used by this class.
+</summary>
+</member><member name="P:TrelloCalendar.My.Resources.Resources.Culture">
+	<summary>
+  Overrides the current thread's CurrentUICulture property for all
+  resource lookups using this strongly typed resource class.
+</summary>
+</member><member name="P:TrelloCalendar.My.Resources.Resources.rescue">
+	<summary>
+  Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+</summary>
+</member><member name="P:TrelloCalendar.My.Resources.Resources.trello">
+	<summary>
+  Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+</summary>
+</member><member name="T:TrelloCalendar.My.Resources.Resources">
+	<summary>
+  A strongly-typed resource class, for looking up localized strings, etc.
+</summary>
+</member><member name="M:TrelloCalendar.ThisAddIn.#ctor(Microsoft.Office.Tools.Outlook.Factory,System.IServiceProvider)">
+</member><member name="M:TrelloCalendar.ThisAddIn.Initialize">
+</member><member name="M:TrelloCalendar.ThisAddIn.FinishInitialization">
+</member><member name="M:TrelloCalendar.ThisAddIn.InitializeDataBindings">
+</member><member name="M:TrelloCalendar.ThisAddIn.InitializeCachedData">
+</member><member name="M:TrelloCalendar.ThisAddIn.InitializeData">
+</member><member name="M:TrelloCalendar.ThisAddIn.BindToData">
+</member><member name="M:TrelloCalendar.ThisAddIn.StartCaching(System.String)">
+</member><member name="M:TrelloCalendar.ThisAddIn.StopCaching(System.String)">
+</member><member name="M:TrelloCalendar.ThisAddIn.IsCached(System.String)">
+</member><member name="M:TrelloCalendar.ThisAddIn.BeginInitialization">
+</member><member name="M:TrelloCalendar.ThisAddIn.EndInitialization">
+</member><member name="M:TrelloCalendar.ThisAddIn.InitializeControls">
+</member><member name="M:TrelloCalendar.ThisAddIn.InitializeComponents">
+</member><member name="M:TrelloCalendar.ThisAddIn.NeedsFill(System.String)">
+</member><member name="M:TrelloCalendar.ThisAddIn.OnShutdown">
+</member><member name="T:TrelloCalendar.ThisAddIn">
+</member><member name="M:TrelloCalendar.Globals.#ctor">
+</member><member name="T:TrelloCalendar.Globals">
+</member><member name="M:TrelloCalendar.ThisRibbonCollection.#ctor(Microsoft.Office.Tools.Ribbon.RibbonFactory)">
+</member><member name="T:TrelloCalendar.ThisRibbonCollection">
+</member><member name="M:TrelloCalendar.ThisFormRegionCollection.#ctor(System.Collections.Generic.IList{Microsoft.Office.Tools.Outlook.IFormRegion})">
+</member><member name="T:TrelloCalendar.ThisFormRegionCollection">
+</member><member name="M:TrelloCalendar.WindowFormRegionCollection.#ctor(System.Collections.Generic.IList{Microsoft.Office.Tools.Outlook.IFormRegion})">
+</member><member name="T:TrelloCalendar.WindowFormRegionCollection">
+</member>
+</members>
+</doc>
