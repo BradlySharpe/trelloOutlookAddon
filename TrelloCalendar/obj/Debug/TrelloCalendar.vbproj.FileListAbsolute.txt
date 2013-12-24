@@ -10,7 +10,6 @@ C:\Users\bsharpe\documents\visual studio 2010\Projects\TrelloCalendar\TrelloCale
 C:\Users\bsharpe\documents\visual studio 2010\Projects\TrelloCalendar\TrelloCalendar\bin\Debug\Newtonsoft.Json.xml
 C:\Users\bsharpe\documents\visual studio 2010\Projects\TrelloCalendar\TrelloCalendar\bin\Debug\Microsoft.Office.Tools.Common.v4.0.Utilities.xml
 C:\Users\bsharpe\documents\visual studio 2010\Projects\TrelloCalendar\TrelloCalendar\bin\Debug\Microsoft.Office.Tools.Outlook.v4.0.Utilities.xml
-C:\Users\bsharpe\documents\visual studio 2010\Projects\TrelloCalendar\TrelloCalendar\obj\Debug\TrelloCalendar.vbprojResolveAssemblyReference.cache
 C:\Users\bsharpe\documents\visual studio 2010\Projects\TrelloCalendar\TrelloCalendar\obj\Debug\TrelloCalendar.Resources.resources
 C:\Users\bsharpe\documents\visual studio 2010\Projects\TrelloCalendar\TrelloCalendar\obj\Debug\TrelloCalendar.vbproj.GenerateResource.Cache
 C:\Users\bsharpe\documents\visual studio 2010\Projects\TrelloCalendar\TrelloCalendar\obj\Debug\TrelloCalendar.dll
