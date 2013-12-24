@@ -702,7 +702,7 @@ Public Class Ribbon1
             Else
                 Dim result As DialogResult = DialogResult.Yes
                 If ShowMessages Then
-                    result = ShowConfirmation("This will refresh from Trello." & vbCrLf & "Are you sure you want to sync?",
+                    result = ShowConfirmation("This will refresh from Trello and replace any changes." & vbCrLf & "Are you sure you want to sync?",
                                  "Sync Confirmation", MessageBoxButtons.YesNo)
                 End If
                 If result = DialogResult.Yes Then
@@ -741,6 +741,32 @@ Public Class Ribbon1
         End If
     End Sub
 
+    Private Sub SetAppointmentAttributes(ByRef appt As Outlook.AppointmentItem, ByVal Board As JObject, ByVal Card As JObject, GetAttachments As Boolean, Optional ByVal UpdateReminder As Boolean = True)
+        appt.Subject = Board("name").ToString() & " - " & Card("name").ToString()
+        appt.Body = "Card Description: " & vbCrLf & Card("desc").ToString()
+
+        If GetAttachments Then
+            Dim JSONAttachments As New JArray
+            CallTrello("cards/" & Card("id").ToString() & "/attachments", "", JSONAttachments)
+            If JSONAttachments.Count > 0 Then
+                appt.Body = appt.Body & vbCrLf & vbCrLf & "Attachments:"
+                For Each attachment In JSONAttachments
+                    appt.Body = appt.Body & vbCrLf & attachment("url").ToString()
+                Next
+            End If
+        End If
+
+        appt.Body = appt.Body & vbCrLf & vbCrLf & "Card Link: " & Card("shortUrl").ToString
+        appt.Location = "Trello - " & Board("name").ToString()
+        appt.StartUTC = Card("due").ToString()
+        appt.Duration = 60
+        If UpdateReminder Then
+            appt.ReminderSet = True
+        End If
+        appt.ReminderMinutesBeforeStart = 15
+        appt.BusyStatus = Outlook.OlBusyStatus.olBusy
+    End Sub
+
     Private Function CreateOutlookAppointment(ByVal Board As JObject, ByVal Card As JObject, Optional HasDueDate As Boolean = True, Optional AssignedToMe As Boolean = True, Optional GetAttachments As Boolean = False)
         If Not (HasDueDate) Or (HasDueDate AndAlso Not String.IsNullOrEmpty(Card("due").ToString)) Then
             'have a card with due date!
@@ -750,27 +776,7 @@ Public Class Ribbon1
                 If Not UpdateAppointment(Board, Card, GetAttachments) Then
                     Dim appt As Outlook.AppointmentItem
                     appt = objCalendar.Items.Add(Outlook.OlItemType.olAppointmentItem)
-                    appt.Subject = Board("name").ToString() & " - " & Card("name").ToString()
-                    appt.Body = "Card Description: " & vbCrLf & Card("desc").ToString()
-
-                    If GetAttachments Then
-                        Dim JSONAttachments As New JArray
-                        CallTrello("cards/" & Card("id").ToString() & "/attachments", "", JSONAttachments)
-                        If JSONAttachments.Count > 0 Then
-                            appt.Body = appt.Body & vbCrLf & vbCrLf & "Attachments:"
-                            For Each attachment In JSONAttachments
-                                appt.Body = appt.Body & vbCrLf & attachment("url").ToString()
-                            Next
-                        End If
-                    End If
-
-                    appt.Body = appt.Body & vbCrLf & vbCrLf & "Card Link: " & Card("shortUrl").ToString
-                    appt.Location = "Trello - " & Board("name").ToString()
-                    appt.StartUTC = Card("due").ToString()
-                    appt.Duration = 60
-                    appt.ReminderSet = True
-                    appt.ReminderMinutesBeforeStart = 15
-                    appt.BusyStatus = Outlook.OlBusyStatus.olBusy
+                    SetAppointmentAttributes(appt, Board, Card, GetAttachments)
                     appt.Save()
 
                     Card.Add(New JProperty("globalid", appt.GlobalAppointmentID))
@@ -782,13 +788,15 @@ Public Class Ribbon1
         Return Nothing
     End Function
 
-    Private Function UpdateAppointment(ByVal Board As JObject, ByVal Card As JObject, HasDueDate As Boolean)
+    Private Function UpdateAppointment(ByVal Board As JObject, ByVal Card As JObject, GetAttachments As Boolean)
         Dim Result As Boolean = False
         Dim ApptJSON As JObject = FindAppointmentByTrelloId(Card("id").ToString)
         If ApptJSON.HasValues Then
             Dim Appt As Outlook.AppointmentItem = FindAppointmentByGlobalId(ApptJSON("globalid").ToString())
             If Appt IsNot Nothing Then
-                ShowInformation("Should update this one!", "Update Required")
+                'ShowInformation("Should update this one!", "Update Required")
+                SetAppointmentAttributes(Appt, Board, Card, GetAttachments, False)
+                Appt.Save()
                 Result = True
             End If
         End If
