@@ -15,3 +15,4 @@ C:\Users\bsharpe\documents\visual studio 2010\Projects\TrelloCalendar\TrelloCale
 C:\Users\bsharpe\documents\visual studio 2010\Projects\TrelloCalendar\TrelloCalendar\obj\Debug\TrelloCalendar.dll
 C:\Users\bsharpe\documents\visual studio 2010\Projects\TrelloCalendar\TrelloCalendar\obj\Debug\TrelloCalendar.xml
 C:\Users\bsharpe\documents\visual studio 2010\Projects\TrelloCalendar\TrelloCalendar\obj\Debug\TrelloCalendar.pdb
+C:\Users\bsharpe\documents\visual studio 2010\Projects\TrelloCalendar\TrelloCalendar\obj\Debug\TrelloCalendar.vbprojResolveAssemblyReference.cache

@@ -21,7 +21,7 @@
             <button id="btnAuth" onAction="btnAuth_Click" label="Authorise" imageMso="DatabasePermissionsMenu" style="large" />
             <button id="btnDeAuthorise" label="De-Authorise" onAction="btnDeauthorise_Click" imageMso="PrintPreviewClose" style="large"/>
             <button id="btnHelp" label="Help" imageMso="Help" style="large"/>
-            <button id="btnFix" label="Fix Calendars" onAction="btnFix_Click" getImage="GetImage" style="large"/>
+            <button id="btnFix" label="Fix Calendars" onAction="btnFix_Click" getImage="GetImage" style="large" getVisible="GetVisible"/>
           </topItems>
         </group>
       </firstColumn>

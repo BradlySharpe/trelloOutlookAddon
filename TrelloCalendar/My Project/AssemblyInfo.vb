@@ -11,7 +11,7 @@ Imports System.Security
 
 <Assembly: AssemblyTitle("TrelloCalendar")> 
 <Assembly: AssemblyDescription("")> 
-<Assembly: AssemblyCompany("")> 
+<Assembly: AssemblyCompany("Tailor Made Solutions")> 
 <Assembly: AssemblyProduct("TrelloCalendar")> 
 <Assembly: AssemblyCopyright("Copyright ©  2013")> 
 <Assembly: AssemblyTrademark("")> 
@@ -19,7 +19,7 @@ Imports System.Security
 ' Setting ComVisible to false makes the types in this assembly not visible 
 ' to COM components.  If you need to access a type in this assembly from 
 ' COM, set the ComVisible attribute to true on that type.
-<Assembly: ComVisible(False)>
+<Assembly: ComVisible(True)> 
 
 'The following GUID is for the ID of the typelib if this project is exposed to COM
 <Assembly: Guid("b486e66c-2f4e-492f-9efd-dd9ec5d9db1d")> 

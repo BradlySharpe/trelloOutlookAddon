@@ -5,6 +5,7 @@ Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 Imports System.IO
 Imports System.Net
+Imports System.Timers
 Imports System.Web
 Imports System.Windows
 Imports System.Windows.Forms
@@ -45,6 +46,8 @@ Public Class Ribbon1
     Private objCalendar As Outlook.MAPIFolder
     Private config As New JObject
     Private explorer As Outlook.Explorer
+    Private syncTimer As New System.Timers.Timer
+    Private syncInProgress As Boolean = False
 
 #Region "Ribbon Callbacks"
 
@@ -87,8 +90,11 @@ Public Class Ribbon1
         explorer = Globals.ThisAddIn.Application.ActiveExplorer()
         CreateTrelloCalendar()
         If CheckEnvironment(False, False, True, True) Then
+            GetConfig()
             AttachContainerHandlers()
             AttachAppointmentHandlers()
+            ConfigureTimer()
+
         Else
             ShowError("Trello Outlook Addon was not loaded", "Internal Error")
         End If
@@ -277,6 +283,8 @@ Public Class Ribbon1
         If CheckEnvironment(True, False) Then
             Dim Push As Boolean = False
             Dim Assigned As Boolean = False
+            Dim Attachments As Boolean = False
+            Dim RefreshTime As Integer = 10
             Dim config As New JObject
             Dim boards As New JArray
             For Each ctrl As Control In container.Controls
@@ -287,6 +295,8 @@ Public Class Ribbon1
                                 Push = True
                             Case "cb-assignedtome"
                                 Assigned = True
+                            Case "cb-attachments"
+                                Attachments = True
                             Case Else
                                 Dim board As New JObject
                                 board.Add(New JProperty("id", ctrl.Name.Replace("cb-", "")))
@@ -294,16 +304,26 @@ Public Class Ribbon1
                                 boards.Add(board)
                         End Select
                     End If
+                ElseIf TypeOf ctrl Is TextBox Then
+                    Dim value As String = DirectCast(ctrl, TextBox).Text
+                    Integer.TryParse(value, RefreshTime)
                 End If
             Next
-            config.Add(New JProperty("boards", boards))
-            config.Add(New JProperty("push", Push))
-            config.Add(New JProperty("assigned", Assigned))
-            WriteRegKey(TrelloRegKey, "config", config.ToString())
-            GetConfig()
-            CreateTrelloCalendar()
-            ShowInformation("Configuration Saved!", "Configuration")
-            CancelClose(sender, Nothing)
+            If RefreshTime > 0 Then
+                config.Add(New JProperty("boards", boards))
+                config.Add(New JProperty("push", Push))
+                config.Add(New JProperty("assigned", Assigned))
+                config.Add(New JProperty("attachments", Attachments))
+                config.Add(New JProperty("refresh", RefreshTime))
+                WriteRegKey(TrelloRegKey, "config", config.ToString())
+                GetConfig()
+                CreateTrelloCalendar()
+                ShowInformation("Configuration Saved!", "Configuration")
+                CancelClose(sender, Nothing)
+                ConfigureTimer()
+            Else
+                ShowError("Sync time is not valid", "Error")
+            End If
         End If
     End Sub
 
@@ -320,6 +340,20 @@ Public Class Ribbon1
                 Return ImageConverter.Convert(My.Resources.rescue.ToBitmap())
         End Select
         Return Nothing
+    End Function
+
+    Public Function GetVisible(ByVal control As IRibbonControl) As Boolean
+        Dim id As String = control.Id.ToUpper
+        Dim visible As Boolean = False
+        Select Case id
+            Case "BTNFIX"
+                GetConfig()
+                If config.HasValues AndAlso config("showfix") IsNot Nothing Then
+                    Dim value As String = config("showfix").ToString
+                    Boolean.TryParse(value, visible)
+                End If
+        End Select
+        Return visible
     End Function
 
     Private Sub GetConfig()
@@ -511,6 +545,8 @@ Public Class Ribbon1
                 container.BringToFront()
             Else
                 Try
+                    syncTimer.Enabled = False
+                    syncTimer.Stop()
                     'Create configuration screen
                     Cursor.Current = Cursors.AppStarting
 
@@ -524,11 +560,11 @@ Public Class Ribbon1
 
                     'Get my boards
 
-                    Dim JSON As New JObject
-                    CallTrello("members/me", "", JSON)
-                    If JSON("idBoards").Count > 0 Then
+                    Dim JSON As New JArray
+                    CallTrello("members/me/boards", "", JSON)
+                    If JSON.Count > 0 Then
                         Dim pb As New TProgressBar
-                        pb.Init("Loading Configuration", JSON("idBoards").Count + 1)
+                        pb.Init("Loading Configuration", JSON.Count + 1)
                         Dim boardJSON As New JObject
                         Dim cbCount As Integer = 1
                         Dim cbTabIndex As Integer = 1
@@ -537,10 +573,11 @@ Public Class Ribbon1
                         Dim checked As Boolean = False
 
                         'Loop all boards
-                        For iBoard As Integer = 0 To JSON("idBoards").Count - 1
+                        For iBoard As Integer = 0 To JSON.Count - 1
                             boardJSON.RemoveAll()
+                            boardJSON = JSON(iBoard)
                             'Get board information
-                            CallTrello("boards/" & JSON("idBoards")(iBoard).ToString, "", boardJSON)
+                            'CallTrello("boards/" & JSON("idBoards")(iBoard).ToString, "", boardJSON)
                             If boardJSON.Count > 0 Then
                                 'Create checkbox for board
 
@@ -554,24 +591,18 @@ Public Class Ribbon1
 
                                 End If
 
-                                cb = CreateCheckbox("cb-" & JSON("idBoards")(iBoard).ToString, boardJSON("name").ToString,
+                                cb = CreateCheckbox("cb-" & boardJSON("id").ToString, boardJSON("name").ToString,
                                                     New System.Drawing.Point(10 + 10, cbStart + (cbHeight * cbCount) + ((cbCount - 1) * cbMarginTop)),
                                                     New System.Drawing.Size(cbWidth, cbHeight), cbTabIndex, True, container, checked)
                                 cbCount = cbCount + 1
                                 cbTabIndex = cbTabIndex + 1
                             End If
-                            If iBoard = JSON("idBoards").Count - 1 Then
+                            If iBoard = JSON.Count - 1 Then
                                 'Find maximum height of container, used to set container height later
                                 maxHeight = cb.Bottom
                             End If
                             pb.StepIt()
                         Next
-
-                        ''Create Options label
-                        'Dim lbOptions As New Label
-                        'lbOptions = CreateLabel("lbOptions", "Options", New System.Drawing.Point(cbWidth + (cbMarginLeft * 2), 55),
-                        '                                     True, 3 + cbCount, New System.Drawing.Font(lbBoards.Font.FontFamily, 10, Drawing.FontStyle.Bold),
-                        '                                     container)
 
                         cbCount = 1
 
@@ -587,7 +618,36 @@ Public Class Ribbon1
                         'Create Assigned to Me Checkbox
                         cb = CreateCheckbox("cb-AssignedToMe", "Cards are assigned to Me",
                                             New System.Drawing.Point(cbWidth + (cbMarginLeft * 2) + 10, cbStart + (cbHeight * cbCount) + ((cbCount - 1) * cbMarginTop)),
-                                            New System.Drawing.Size(cbWidth, cbHeight), cbTabIndex, True, container)
+                                            New System.Drawing.Size(cbWidth, cbHeight), cbTabIndex, True, container, checked)
+                        cbCount = cbCount + 1
+                        cbTabIndex = cbTabIndex + 1
+
+                        'Create Assigned to Me Checkbox
+                        Dim value As String = 10
+                        If config.HasValues AndAlso config("refresh") IsNot Nothing Then
+                            value = config("refresh").ToString
+                        End If
+                        Dim tb As TextBox = CreateTextbox("tb-RefreshTime", value,
+                                                          New System.Drawing.Point(cbWidth + (cbMarginLeft * 2) + 10, cbStart + (cbHeight * cbCount) + ((cbCount - 1) * cbMarginTop)),
+                                                          New System.Drawing.Size(20, cbHeight), cbTabIndex, True, container)
+
+                        Dim lbSync As New Label
+                        lbSync = CreateLabel("lbSync", "Sync every (mins)",
+                                             New System.Drawing.Point(cb.Left, tb.Top + 4),
+                                                             True, 0, New System.Drawing.Font(lbSync.Font.FontFamily, 8, Drawing.FontStyle.Regular),
+                                                             container)
+                        tb.Left = tb.Left + 100
+                        tb.MaxLength = 2
+                        AddHandler tb.KeyPress, AddressOf NumericKeyPress
+
+                        cbCount = cbCount + 1
+                        cbTabIndex = cbTabIndex + 1
+
+                        checked = (config.HasValues AndAlso config("attachments") IsNot Nothing AndAlso config("attachments").ToString.ToUpper = "TRUE")
+                        'Create Attachments Checkbox
+                        cb = CreateCheckbox("cb-Attachments", "Get Attachments",
+                                            New System.Drawing.Point(cbWidth + (cbMarginLeft * 2) + 10, cbStart + (cbHeight * cbCount) + ((cbCount - 1) * cbMarginTop)),
+                                            New System.Drawing.Size(cbWidth, cbHeight), cbTabIndex, True, container, checked)
                         cbCount = cbCount + 1
                         cbTabIndex = cbTabIndex + 1
 
@@ -635,8 +695,8 @@ Public Class Ribbon1
                         ShowError("No boards to load", "Configuration")
                     End If
                 Finally
-                Cursor.Current = Cursors.Default
-            End Try
+                    Cursor.Current = Cursors.Default
+                End Try
             End If
         End If
     End Sub
@@ -665,6 +725,25 @@ Public Class Ribbon1
         For Each item As Outlook.AppointmentItem In objCalendar.Items
             AddHandler item.BeforeDelete, AddressOf ItemRemove
         Next
+    End Sub
+
+    Private Sub ConfigureTimer()
+        syncTimer.Interval = Integer.MaxValue
+        syncTimer.Stop()
+        syncTimer.Enabled = False
+        Dim interval As Integer = 0
+        If config.HasValues AndAlso config("refresh") IsNot Nothing Then
+            Integer.TryParse(config("refresh").ToString, interval)
+            If interval > 0 Then
+                syncTimer.Interval = interval * 60 * 1000
+            End If
+        End If
+        AddHandler syncTimer.Elapsed, AddressOf runTimer
+        syncTimer.AutoReset = True
+        If interval > 0 Then
+            syncTimer.Enabled = True
+            syncTimer.Start()
+        End If
     End Sub
 
     Private Sub DeAuthoriseApplication(Optional ByVal ShowMessage As Boolean = True)
@@ -706,38 +785,61 @@ Public Class Ribbon1
                                  "Sync Confirmation", MessageBoxButtons.YesNo)
                 End If
                 If result = DialogResult.Yes Then
-                    Try
-                        Cursor.Current = Cursors.AppStarting
-                        'FindTrelloCalendar()
-                        Dim JSONBoardCards As New JArray
-                        Dim objOutlook As Outlook._Application = New Outlook.Application
-                        Dim AssignedToMe As Boolean = False
-                        If config.HasValues AndAlso config("assigned") IsNot Nothing AndAlso config("assigned").ToString().ToLower = "true" Then
-                            AssignedToMe = True
-                        End If
-                        Dim GetAttachments As Boolean = True
-                        If config.HasValues AndAlso config("attachments") IsNot Nothing AndAlso config("attachments").ToString().ToLower = "true" Then
-                            GetAttachments = True
-                        End If
-                        For Each board In config("boards")
-                            CallTrello("board/" & board("id").ToString & "/cards", "", JSONBoardCards)
-                            Dim pb As New TProgressBar
-                            pb.Init("Loading Board: " & board("name").ToString, JSONBoardCards.Count)
-                            For Each item In JSONBoardCards
-                                Dim card As New JObject
-                                CallTrello("card/" + item("id").ToString, "", card)
-                                CreateOutlookAppointment(board, card, True, AssignedToMe, GetAttachments)
-                                pb.StepIt()
-                            Next
-                            pb.Done()
-                            pb = Nothing
-                        Next
-                        WriteRegKey(TrelloRegKey, "last_sync", Now)
-                    Finally
-                        Cursor.Current = Cursors.Default
-                    End Try
+                    If syncInProgress = True Then
+                        ShowError("Sync is already in progress", "Sync Error")
+                    Else
+                        Sync(True)
+                    End If
                 End If
             End If
+        End If
+    End Sub
+
+    Private Sub Sync(Optional ByVal showPorgress As Boolean = True)
+        If ((syncInProgress = False) AndAlso (config.HasValues) AndAlso (config("boards") IsNot Nothing) AndAlso (config("boards").HasValues)) Then
+            Try
+                syncTimer.Enabled = False
+                syncTimer.Stop()
+                syncInProgress = True
+                If showPorgress = True Then
+                    Cursor.Current = Cursors.AppStarting
+                End If
+                Dim objOutlook As Outlook._Application = New Outlook.Application
+                Dim AssignedToMe As Boolean = False
+                If config.HasValues AndAlso config("assigned") IsNot Nothing AndAlso config("assigned").ToString().ToLower = "true" Then
+                    AssignedToMe = True
+                End If
+                Dim GetAttachments As Boolean = False
+                If config.HasValues AndAlso config("attachments") IsNot Nothing AndAlso config("attachments").ToString().ToLower = "true" Then
+                    GetAttachments = True
+                End If
+                Dim JSONBoardCards As New JArray
+                For Each board In config("boards")
+                    CallTrello("board/" & board("id").ToString & "/cards", "", JSONBoardCards)
+                    Dim pb As New TProgressBar
+                    If showPorgress = True Then
+                        pb.Init("Syncing Board: " & board("name").ToString, JSONBoardCards.Count)
+                    End If
+                    For Each item In JSONBoardCards
+                        CreateOutlookAppointment(board, item, True, AssignedToMe, GetAttachments)
+                        If showPorgress = True Then
+                            pb.StepIt()
+                        End If
+                    Next
+                    If showPorgress = True Then
+                        pb.Done()
+                    End If
+                    pb = Nothing
+                Next
+                WriteRegKey(TrelloRegKey, "last_sync", Now)
+            Finally
+                If showPorgress = True Then
+                    Cursor.Current = Cursors.Default
+                End If
+                syncInProgress = False
+                syncTimer.Enabled = True
+                syncTimer.Start()
+            End Try
         End If
     End Sub
 
@@ -795,7 +897,7 @@ Public Class Ribbon1
             Dim Appt As Outlook.AppointmentItem = FindAppointmentByGlobalId(ApptJSON("globalid").ToString())
             If Appt IsNot Nothing Then
                 'ShowInformation("Should update this one!", "Update Required")
-                SetAppointmentAttributes(Appt, Board, Card, GetAttachments, False)
+                SetAppointmentAttributes(Appt, Board, Card, GetAttachments, Appt.ReminderSet)
                 Appt.Save()
                 Result = True
             End If
@@ -880,6 +982,7 @@ Public Class Ribbon1
         container.ResumeLayout()
         configOpen = False
         authOpen = False
+        syncTimer.Enabled = True
     End Sub
 
     Private Sub LocationChanged(sender As Object, e As System.EventArgs)
@@ -900,6 +1003,28 @@ Public Class Ribbon1
         End If
         If container.Visible Then
             container.Hide()
+        End If
+    End Sub
+
+    Private Sub runTimer(sender As Object, e As System.EventArgs)
+        System.Threading.SynchronizationContext.SetSynchronizationContext(New WindowsFormsSynchronizationContext())
+        Using worker As New System.ComponentModel.BackgroundWorker
+            AddHandler worker.DoWork, AddressOf timerSync
+            'AddHandler worker.RunWorkerCompleted, AddressOf GotMember
+            worker.RunWorkerAsync()
+        End Using
+    End Sub
+
+    Private Sub timerSync()
+        GetConfig()
+        Sync(False)
+    End Sub
+
+    Private Sub NumericKeyPress(sender As Object, e As System.Windows.Forms.KeyPressEventArgs)
+        Dim key As Integer
+        key = Asc(e.KeyChar)
+        If ((key < 48 Or key > 57) AndAlso key <> 8 AndAlso key <> 127) Then
+            e.KeyChar = ""
         End If
     End Sub
 
@@ -1003,6 +1128,24 @@ Public Class Ribbon1
             .Show()
         End With
         Return lb
+    End Function
+
+    Private Function CreateTextbox(ByVal Name As String, ByVal Text As String, ByVal Location As Point,
+                                    ByVal Size As Size, ByVal TabIndex As Integer, ByVal Visible As Boolean,
+                                    ByVal Parent As Control, Optional Checked As Boolean = False) As TextBox
+        Dim tb As TextBox = New TextBox
+        With tb
+            .Location = Location
+            .Name = Name
+            .Text = Text
+            .Size = Size
+            .TabIndex = TabIndex
+            .Visible = Visible
+            .Parent = Parent
+            .Show()
+        End With
+        Parent.Controls.Add(tb)
+        Return tb
     End Function
 
     Private Sub ShowError(ByVal Text As String, ByVal Caption As String)

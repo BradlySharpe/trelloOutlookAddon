@@ -2,7 +2,8 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <PublishUrlHistory>publish\</PublishUrlHistory>
-    <InstallUrlHistory>http://mytms.at/trellooutlookaddon/</InstallUrlHistory>
+    <InstallUrlHistory>
+    </InstallUrlHistory>
     <SupportUrlHistory>http://mytms.at/trellooutlookaddon.html</SupportUrlHistory>
   </PropertyGroup>
 </Project>
